@@ -23,6 +23,30 @@ iostatus = $8801
 iocmd    = $8802
 ioctrl   = $8803
 
+  ;; I like to have a lot of local variable registers 
+  ;; when writing code.
+
+  ;; Most assembly routines follow the convention of not 
+  ;; cobbling registers local8 to local15
+
+local0 = $00
+local1 = $01
+local2 = $02
+local3 = $03
+local4 = $04
+local5 = $05
+local6 = $06
+local7 = $07
+local8 = $08
+local9 = $09
+local10 = $10
+local11 = $11
+local12 = $12
+local13 = $13
+local14 = $14
+local15 = $15
+
+
 .org $0300
 
 start:  
@@ -68,10 +92,24 @@ start:
   lda #$1a
   sta ioctrl
 
-init:   ldx #$00       ; Initialize index
-
-
+reset_string:
+  ldx #$0
 loop:   
+  lda string, x
+  beq reset_string
+  jsr put_byte
+  inx
+  jmp loop
+
+
+  ;; Writes the byte in the accumulator to the ACIA.
+  ;; cobbles: local0
+.proc put_byte 
+
+  sta local0
+
+again:
+
   ;; Status Register read:
   ;; 
   ;; 76543210
@@ -80,16 +118,13 @@ loop:
   ;; 4: Transmitter Data Register Empty
   ;;    0 = Not Empty
   ;;    1 = Empty
+  lda iostatus
+  and #$10       ; Is the transmit register empty?
+  beq again      ; If not, wait for it to empty
 
-        lda iostatus
-        and #$10       ; Is the tx register empty?
-        beq loop       ; if not, wait for it to empty
+  lda local0
+  sta iobase 
+  rts
+.endproc
 
-        lda string,x   ; Otherwise, load the string pointer
-        beq init       ; If the char is 0, re-init
-        sta iobase     ; Otherwise, transmit
-
-        inx            ; Increment string pointer.
-        jmp loop       ; Repeat write.
-
-string: .byte "huh", 0
+string: .byte "hi there", $0D, $0A, 0
