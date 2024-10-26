@@ -1,0 +1,44 @@
+  COMMAND REGISTER                                                        
+                                                                          
+                                                                          
+  The command Register is used to control Specific                        
+  Transmit/Receive functions and is shown in Figure 7.                    
+                                                                          
+                                                                          
+                                                                          
+                                                     COMMAND REGISTER     
+                                               ┌─────────────────────────┐
+                                               │ 7  6  5  4  3  2  1  0  │
+                                               └─┬──┬──┬──┬──────────────┘
+                                                 │  │  │  │               
+                                                 │  │  │  │               
+                                                 │  │  │  │               
+ PARITY CHECK CONTROLS ──────────────────────────┴──┴──┘  │               
+                                                          │               
+ ┌───────────┬─────────────────────────────────────┐      │               
+ │   BIT     │             OPERATION               │      │               
+ ├───┬───┬───┤                                     │      │               
+ │ 7 │ 6 │ 5 │                                     │      │               
+ ├───┼───┼───┼─────────────────────────────────────┤      │               
+ │ - │ - │ 0 │ Parity Disabled - No Parity Bit     │      │               
+ │   │   │   │ Generated - No Parity Bit Received  │      │               
+ ├───┼───┼───┼─────────────────────────────────────┤      │               
+ │ 0 │ 0 │ 1 │ Odd Parity Receiver and Transmitter │      │               
+ ├───┼───┼───┼─────────────────────────────────────┤      │               
+ │ 0 │ 1 │ 1 │ Even Parity Receiver and            │      │               
+ │   │   │   │ Transmitter                         │      │               
+ ├───┼───┼───┼─────────────────────────────────────┤      │               
+ │ 1 │ 0 │ 1 │ Mark Parity Bit Tramsitted,         │      │               
+ │   │   │   │ Parity Check Disabled               │      │               
+ ├───┼───┼───┼─────────────────────────────────────┤      │               
+ │ 1 │ 1 │ 1 │ Space Parity Bit Transmitted,       │      │               
+ │   │   │   │ Parity Check Disabled               │      │               
+ └───┴───┴───┴─────────────────────────────────────┘      │               
+                                                          │               
+                                                          │               
+ NORMAL/ECHO MODE                                         │               
+ FOR RECEIVER     ────────────────────────────────────────┘               
+┌────────────┐                                                            
+│ 0 = Normal │                                                            
+│ 1 = Echo   │                                                            
+└────────────┘                                                            
