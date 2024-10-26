@@ -51,6 +51,8 @@ local15 = $15
 
 start:  
 
+  ;; BEGIN SETUP
+
   ;; The first thing we do is to allow interrupts to get to the CPU
   cli
 
@@ -92,22 +94,17 @@ start:
   lda #$1a
   sta ioctrl
 
-reset_string:
-  ldx #$0
+  ;; END SETUP
+
 loop:   
-  lda string, x
-  beq reset_string
+  jsr read_byte
   jsr put_byte
-  inx
   jmp loop
 
 
   ;; Writes the byte in the accumulator to the ACIA.
-  ;; cobbles: local0
 .proc put_byte 
-
-  sta local0
-
+  pha
 again:
 
   ;; Status Register read:
@@ -121,10 +118,32 @@ again:
   lda iostatus
   and #$10       ; Is the transmit register empty?
   beq again      ; If not, wait for it to empty
-
-  lda local0
+  pla
   sta iobase 
   rts
+.endproc
+
+  ;; Reads a byte from the ACIA into the accumulator.
+.proc read_byte
+
+
+  ;; Status Register read:
+  ;; 
+  ;; 76543210
+  ;; ........
+  ;;
+  ;; 3: Receiver Data Register Full
+  ;;    0 = Not Full
+  ;;    1 = Full
+
+again:
+  lda iostatus
+  and #$08
+  beq again
+  lda iobase 
+
+  rts
+
 .endproc
 
 string: .byte "hi there", $0D, $0A, 0
