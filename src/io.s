@@ -1,0 +1,114 @@
+
+.segment "CODE"
+
+
+  ;; The input/output system implemented by symon simulates the behavior of the
+  ;; MOS Technology 6551 Asynchronous Communications Interface Adapter [2],
+  ;; (aka ACIA) which is a known IO device for 6502 systems.
+
+  ;; [1] https://github.com/sethm/symon
+  ;; [2] https://en.wikipedia.org/wiki/MOS_Technology_6551
+
+  ;; The 6551 has 3 main registers, known as the status register,
+  ;; the command register, and the control register.
+  ;; Using those and the data bus, it is possible to get most input/output things done.
+
+  ;; In symon, these special memory locations are mapped to
+  ;; the following memory addresses. Writing to those will affect the 6551.
+iobase   = $8800
+iostatus = $8801
+iocmd    = $8802
+ioctrl   = $8803
+
+
+.export setup_io
+.export put_byte
+.export read_byte
+
+.proc setup_io
+  ;; We make a few settings to the ACIA by writing
+  ;; to the command and control registers.
+
+  ;; Command Register write:
+  ;;
+  ;; 76543210
+  ;; 00001011
+  ;;
+  ;; 765 : Parity Disabled
+  ;; 4   : Normal mode for receiver
+  ;; 32  : Transmit interrupt disabled, RTS level low
+  ;; 1   : IRQ interrupt disabled
+  ;; 0   : Disabled Receiver/Transmitter
+
+
+  lda #$0B
+  sta iocmd
+
+  ;; Control Register write:
+  ;;
+  ;; 76543210
+  ;; 00011010
+  ;;
+  ;; 7: Stop bits is 1
+  ;; 65: Data word length is 8
+  ;; 4: Receiver clock source is baud rate generator
+  ;; 3210: Baid rate generator is at 2400
+
+  ;; Technically, to symon, some of these settings changes are actually unecessary:
+  ;; > The parity, stop-bits and bits-per-character settings are ignored.
+  ;; > The ACIA always sends and receives 8-bit characters, and parity errors
+  ;; > do not occur.
+
+  ;; but we do it anyway.
+
+  lda #$1a
+  sta ioctrl
+
+  rts
+
+
+.endproc
+
+  ;; Writes the byte in the accumulator to the ACIA.
+.proc put_byte
+  pha
+again:
+
+  ;; Status Register read:
+  ;;
+  ;; 76543210
+  ;; ........
+  ;;
+  ;; 4: Transmitter Data Register Empty
+  ;;    0 = Not Empty
+  ;;    1 = Empty
+  lda iostatus
+  and #$10       ; Is the transmit register empty?
+  beq again      ; If not, wait for it to empty
+  pla
+  sta iobase
+  rts
+.endproc
+
+  ;; Reads a byte from the ACIA into the accumulator.
+.proc read_byte
+
+
+  ;; Status Register read:
+  ;;
+  ;; 76543210
+  ;; ........
+  ;;
+  ;; 3: Receiver Data Register Full
+  ;;    0 = Not Full
+  ;;    1 = Full
+
+again:
+  lda iostatus
+  and #$08
+  beq again
+  lda iobase
+
+  rts
+
+.endproc
