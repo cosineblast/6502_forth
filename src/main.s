@@ -25,7 +25,7 @@ ioctrl   = $8803
 
 .include "locals.h.s"
 
-.org $0300
+.segment "CODE" 
 
 start:  
 
