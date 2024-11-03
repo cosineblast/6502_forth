@@ -18,6 +18,17 @@
 
 
 
+.proc inc_esi_two
+  lda esi
+  clc
+  adc #2
+  sta esi
+  lda esi+1
+  adc #0
+  sta esi+1
+  rts
+.endproc
+
 .proc next
 
     ; tmp = esi
@@ -26,13 +37,7 @@
     lda esi
     sta local0
 
-    ; esi += 2
-    clc
-    adc #2
-    sta esi
-    lda esi+1
-    adc #0
-    sta esi+1
+    jsr inc_esi_two
 
     ; tmp2 = *tmp
     ldy #0
@@ -392,6 +397,26 @@ ZEROEQ_code:
   ;; TODO
   jmp next
 
+LIT_header:
+  .word ZEROEQ_header
+  .byte $03
+  .byte "LIT"
+LIT:
+  .word LIT_code
+LIT_code:
+  ldy #0
+  lda (esi), y
+
+  ldx stack_offset
+  dex 
+  sta DATA_STACK, x
+  stx stack_offset
+
+  jsr inc_esi_two
+
+  jmp next
+
+
 
 DOUBLE:
   .word docol
@@ -433,7 +458,11 @@ docol:
   jmp next
 
 MAIN_words:
-  .word DOUBLE
+  .word LIT
+  .word $0004
+  .word LIT
+  .word $0002
+  .word ADD
   .word DOUBLE
   .word RETURN
 
@@ -447,7 +476,7 @@ forth_main:
   lda #$ff
   sta stack_offset
 
-  lda #8
+  lda #00
   sta DATA_STACK+$ff
 
   lda #<MAIN_words
