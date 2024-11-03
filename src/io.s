@@ -1,4 +1,4 @@
-
+  ;;
 .segment "CODE"
 
 
@@ -21,9 +21,13 @@ iocmd    = $8802
 ioctrl   = $8803
 
 
+.include "locals.h.s"
+
 .export setup_io
 .export put_byte
+.export put_str
 .export read_byte
+.export format_byte
 
 .proc setup_io
   ;; We make a few settings to the ACIA by writing
@@ -70,6 +74,7 @@ ioctrl   = $8803
 .endproc
 
   ;; Writes the byte in the accumulator to the ACIA.
+  ;; Clobbers: A
 .proc put_byte
   pha
 again:
@@ -91,6 +96,7 @@ again:
 .endproc
 
   ;; Reads a byte from the ACIA into the accumulator.
+  ;; Clobbers: A
 .proc read_byte
 
 
@@ -108,7 +114,107 @@ again:
   and #$08
   beq again
   lda iobase
-
   rts
 
 .endproc
+
+  ;; Saves the byte value in the accumlator as a base 10 string 
+  ;; in local7, local8, local9, local10
+  ;; Tiny ABI.
+.proc byte_to_str
+
+.endproc
+
+  ;; Computes A/10 and A%10, saves the remainder in A and the 
+  ;; quotient in local1.
+  ;; Tiny ABI.
+.proc div10
+
+  ; quot = 0;
+  ldx #0
+  stx local0
+
+  ; rem = A;
+loop:
+
+  ; while (rem >= 10) {
+  cmp #10
+  bcc loop_end
+
+  ; rem -= 10;
+  ; // carry flag is necessarily set here
+  sbc #10
+
+  ; quot += 1
+  inc local0
+
+  jmp loop
+loop_end:
+  rts
+
+.endproc
+
+  ;; local0, local1: address
+  ;; local2: size
+  ;; works with at most 255-sized strings
+.proc put_str
+
+  ; i = 0
+  ldy #0
+  ; j = size
+
+  lda local2
+  tax
+
+loop:
+
+  ; while (j != 0) {
+  txa 
+  beq end_loop
+
+  ; put_byte(ptr[i])
+  lda (local0), y
+  jsr put_byte
+
+  ; i++
+  iny 
+  ; j--
+  dex
+  jmp loop
+
+end_loop:
+  rts
+
+.endproc
+
+.proc format_byte
+    
+  jsr div10
+  clc 
+  adc #$30
+  sta local7
+
+  lda local0
+  jsr div10
+  clc 
+  adc #$30
+  sta local6
+
+  lda local0
+  clc
+  adc #$30
+  sta local5
+
+  lda #<local5 
+  sta local0 
+  
+  lda #>local5
+  sta local1 
+
+  lda #3
+  sta local2 
+
+.endproc
+
+
+

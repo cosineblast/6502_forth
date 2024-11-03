@@ -7,7 +7,9 @@
 
 .import read_byte
 .import put_byte
+.import put_str
 .import setup_io
+.import format_byte
 
 .import forth_main
 
@@ -20,11 +22,13 @@ start:
   ;; Then, we setup the ACIA
   jsr setup_io
 
-
-
   ;; END SETUP
 
-  jsr forth_main
+  lda #123
+  jsr format_byte
+
+  jsr put_str
+
 loop:
   jsr read_byte
   jsr put_byte
