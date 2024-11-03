@@ -7,13 +7,13 @@
   .export forth_main
 
   ;; Two-byte value
-  esi = $10
+  esi = $20
 
 
   ;; One-byte value, offset into SP_PAGE
   ;; in the future, we might make this two values,
   ;; for multi-page stacks, but that might make things slow.
-  stack_offset = $12
+  stack_offset = $22
   DATA_STACK = $2300
 
 
@@ -417,6 +417,62 @@ LIT_code:
   jmp next
 
 
+  ;; STORE ( data address -- )
+STORE_header:
+  .word LIT_header
+  .byte $01
+  .byte "!"
+STORE:
+  .word STORE_code
+
+STORE_code:
+
+  ; tmp = stack[offset] merged with stack_offset[offset+1]
+  ldx stack_offset
+  lda DATA_STACK, x
+  sta local0
+  inx 
+  lda DATA_STACK, x
+  sta local1
+
+  inx
+  lda DATA_STACK, x
+
+  ; *tmp = stack_offset[offset+2]
+  ldy #0
+  sta (local0), y
+
+  ;; offset += 3
+  inx
+  stx stack_offset
+  jmp next
+
+
+  ;; FETCH ( address -- value )
+FETCH_header:
+  .word STORE_header
+  .byte $01
+  .byte "@"
+FETCH:
+  .word FETCH_code
+FETCH_code:
+  ; tmp = stack[offset] merged with stack_offset[offset+1]
+  ldx stack_offset
+  lda DATA_STACK, x
+  sta local0
+  inx 
+  lda DATA_STACK, x
+  sta local1
+
+  ; stack_offset[offset+2] = tmp
+  ldy #0
+  lda (local0), y
+  inx
+  sta DATA_STACK, x
+
+  ;; offset += 2
+  stx stack_offset
+  jmp next
 
 DOUBLE:
   .word docol
