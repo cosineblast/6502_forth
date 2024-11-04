@@ -2,7 +2,8 @@
 .include "locals.h.s"
 
 
-  .import  put_byte
+  .import put_byte
+  .import read_byte
   .import format_byte
 
   .export forth_main
@@ -508,6 +509,39 @@ CR_code:
   jsr put_byte
   jmp next
 
+KEY_header:
+  .word CR_header
+  .byte $03
+  .byte "KEY"
+KEY:
+  .word KEY_code
+KEY_code:
+  jsr read_byte
+
+  ldx stack_offset
+  dex 
+  stx stack_offset
+
+  sta DATA_STACK, x
+
+  jmp next
+
+EMIT_header:
+  .word KEY_header
+  .byte $04
+  .byte "EMIT"
+  .byte $00
+EMIT:
+  .word EMIT_code
+EMIT_code:
+  ldx stack_offset
+  lda DATA_STACK, x
+  inx 
+  stx stack_offset
+
+  jsr put_byte
+  jmp next
+
 
 DOUBLE:
   .word docol
@@ -550,15 +584,10 @@ docol:
 
 MAIN_words:
   .word LIT
-  .word $0004
-  .word LIT
-  .word $0002
+  .word $0001
+  .word KEY
   .word ADD
-  .word DOUBLE
-  .word DOUBLE
-  .word DUP
-  .word DOT
-  .word DOT
+  .word EMIT
   .word CR
   .word RETURN
 
