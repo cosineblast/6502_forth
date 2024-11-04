@@ -1,8 +1,9 @@
+  ;;
 .include "locals.h.s"
 
 
-  .import read_byte
-  .import write_byte
+  .import  put_byte
+  .import format_byte
 
   .export forth_main
 
@@ -103,12 +104,12 @@ SWAP_code:
   sta local0
 
   ; tmp1 = stack[offset+1]
-  inx 
+  inx
   lda DATA_STACK, x
-  sta local1 
+  sta local1
 
   ; stack[offset+1] = tmp0
-  lda local0 
+  lda local0
   sta DATA_STACK, x
 
   ; stack[offset] = tmp1
@@ -128,7 +129,7 @@ OVER:
   .word OVER_code
 OVER_code:
   ldx stack_offset
-  inx 
+  inx
   lda DATA_STACK, x
   dex
   dex
@@ -148,30 +149,30 @@ ROT_code:
   ;; tmp0 = stack[offset]
   ldx stack_offset
   lda DATA_STACK, x
-  sta local0 
+  sta local0
 
   ;; tmp1 = stack[offset+1]
-  inx 
+  inx
   lda DATA_STACK, x
   sta local1
 
   ;; tmp2 = stack[offset+2]
   inx
   lda DATA_STACK, x
-  sta local2 
+  sta local2
 
   ;; stack[offset+2] = tmp0
   lda local0
   sta DATA_STACK, x
 
   ;; stack[offset+1] = tmp2
-  dex 
+  dex
   lda local2
   sta DATA_STACK, x
 
   ;; stack[offset] = tmp1
-  dex 
-  lda local1 
+  dex
+  lda local1
   sta DATA_STACK, x
 
   jmp next
@@ -188,29 +189,29 @@ NROT_code:
   ;; tmp0 = stack[offset]
   ldx stack_offset
   lda DATA_STACK, x
-  sta local0 
+  sta local0
 
   ;; tmp1 = stack[offset+1]
-  inx 
+  inx
   lda DATA_STACK, x
   sta local1
 
   ;; tmp2 = stack[offset+2]
   inx
   lda DATA_STACK, x
-  sta local2 
+  sta local2
 
   ;; stack[offset+2] = tmp1
   lda local1
   sta DATA_STACK, x
 
   ;; stack[offset+1] = tmp0
-  dex 
+  dex
   lda local0
   sta DATA_STACK, x
 
   ;; stack[offset] = tmp2
-  dex 
+  dex
   lda local2
   sta DATA_STACK, x
   jmp next
@@ -240,7 +241,7 @@ TWODUP_code:
   lda DATA_STACK, x
   sta local0
 
-  inx 
+  inx
   lda DATA_STACK, x
 
   dex
@@ -408,7 +409,7 @@ LIT_code:
   lda (esi), y
 
   ldx stack_offset
-  dex 
+  dex
   sta DATA_STACK, x
   stx stack_offset
 
@@ -431,7 +432,7 @@ STORE_code:
   ldx stack_offset
   lda DATA_STACK, x
   sta local0
-  inx 
+  inx
   lda DATA_STACK, x
   sta local1
 
@@ -460,7 +461,7 @@ FETCH_code:
   ldx stack_offset
   lda DATA_STACK, x
   sta local0
-  inx 
+  inx
   lda DATA_STACK, x
   sta local1
 
@@ -473,6 +474,40 @@ FETCH_code:
   ;; offset += 2
   stx stack_offset
   jmp next
+
+DOT_header:
+  .word FETCH_header
+  .byte $01
+  .byte "."
+DOT:
+  .word DOT_code
+DOT_code:
+  ldx stack_offset
+  lda DATA_STACK, x
+  inx 
+  stx stack_offset
+  jsr format_byte
+
+  lda #$20
+  jsr put_byte
+
+  jmp next
+
+CR_header:
+  .word DOT_header
+  .byte $02
+  .byte "CR"
+  .byte $00
+CR:
+  .word CR_code
+CR_code:
+  lda #$0A
+  jsr put_byte
+
+  lda #$0D
+  jsr put_byte
+  jmp next
+
 
 DOUBLE:
   .word docol
@@ -520,6 +555,11 @@ MAIN_words:
   .word $0002
   .word ADD
   .word DOUBLE
+  .word DOUBLE
+  .word DUP
+  .word DOT
+  .word DOT
+  .word CR
   .word RETURN
 
 RETURN:

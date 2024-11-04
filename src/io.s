@@ -214,6 +214,8 @@ end_loop:
   lda #3
   sta local2 
 
+  jmp put_str
+
 .endproc
 
 

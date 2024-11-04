@@ -24,10 +24,7 @@ start:
 
   ;; END SETUP
 
-  lda #123
-  jsr format_byte
-
-  jsr put_str
+  jsr forth_main
 
 loop:
   jsr read_byte
