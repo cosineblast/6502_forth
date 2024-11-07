@@ -18,6 +18,10 @@
   stack_offset = $22
   DATA_STACK = $2300
 
+  word_buffer = $24
+  ;; 32-byte value
+  ;; the buffer where we store words and stuff
+
 
 
 .proc inc_esi_two
@@ -485,7 +489,7 @@ DOT:
 DOT_code:
   ldx stack_offset
   lda DATA_STACK, x
-  inx 
+  inx
   stx stack_offset
   jsr format_byte
 
@@ -519,7 +523,7 @@ KEY_code:
   jsr read_byte
 
   ldx stack_offset
-  dex 
+  dex
   stx stack_offset
 
   sta DATA_STACK, x
@@ -536,11 +540,213 @@ EMIT:
 EMIT_code:
   ldx stack_offset
   lda DATA_STACK, x
-  inx 
+  inx
   stx stack_offset
 
   jsr put_byte
   jmp next
+
+WORD_header:
+  .word EMIT_header
+  .byte $04
+  .byte "WORD"
+  .byte $00
+WORD:
+  .word WORD_code
+
+WORD_code:
+  jsr read_word
+
+  sta local0
+
+  ldx stack_offset
+  lda #>word_buffer
+  sta DATA_STACK, x
+
+  dex
+  lda #<word_buffer
+  sta DATA_STACK, x
+
+  dex
+  lda local0
+  sta DATA_STACK, x
+
+  stx stack_offset
+
+  jmp next
+
+  ;; reads characters from stdin into word_buffer
+  ;; no bounds checking is performed.
+  ;; the size of the string is kept in A
+  ;; clobbers X
+.proc read_word
+  ;; 1. read stuff until not whitespace
+ws_loop:
+  jsr read_byte
+
+  cmp #$0A ; '\n'
+  beq ws_loop
+  cmp #$20 ; ' '
+  beq ws_loop
+  cmp #$0D ; '\r'
+  beq ws_loop
+  cmp #$09 ; '\t'
+  beq ws_loop
+
+  ;; 2. copy characters until whitespace
+  ldx #$00
+char_loop:
+  sta word_buffer, x
+  jsr read_byte
+
+  cmp #$0A ; '\n'
+  beq end_char_loop
+  cmp #$20 ; ' '
+  beq end_char_loop
+  cmp #$0D ; '\r'
+  beq end_char_loop
+  cmp #$09 ; '\t'
+  beq end_char_loop
+
+  inx
+  jmp char_loop
+
+end_char_loop:
+  inx
+  txa
+  rts
+.endproc
+
+NUMBER_header:
+  .word WORD_header
+  .byte $06
+  .byte "NUMBER"
+  .byte $00
+NUMBER:
+  .word NUMBER_code
+NUMBER_code:
+
+  ldx stack_offset
+  lda DATA_STACK, x
+
+  sta local2
+
+  inx
+  lda DATA_STACK, x
+  sta local0
+
+  inx
+  lda DATA_STACK, x
+  sta local1
+
+  jsr parse_number
+
+  ldx stack_offset
+  inx
+  inx
+
+  sta DATA_STACK, x
+  dex
+
+  lda local0
+  sta DATA_STACK, x
+
+  stx stack_offset
+
+  jmp next
+
+  ;; local0, local1: pointer to a string
+  ;; local2: size of such string
+  ;; saves the result number in A
+  ;; saves the number of unprocessed characters in local0
+  ;; todo: document this and WORD and stuff
+.proc parse_number
+
+  ;; if the string is empty then succeed with zero
+  lda local2
+  beq empty
+
+  ; answer = 0
+  lda #0
+  sta local3
+
+  ldy #00
+
+loop:
+  ; digit = str[i]
+  lda (local0), y
+
+  ; while (digit >= '0' && digit <= '9') {
+  cmp #'0'
+  bcc the_end
+
+  cmp #'9' + 1
+  bcs the_end
+
+  ; digit_value = digit - '0'
+  sec
+  sbc #'0'
+  pha
+
+  ; answer = answer * 10
+  jsr mul_local3_10
+
+  ; answer += diigit_value
+  pla
+  clc
+  adc local3
+  sta local3
+
+  ; i++
+  iny
+  jmp loop
+the_end:
+
+  ; not_handled = str.size - i
+  tya
+  sta local4
+  lda local2
+  sec
+  sbc local4
+
+  sta local0
+  lda local3
+  rts
+
+empty:
+  lda #00
+  sta local0
+  rts
+
+.endproc
+
+.proc mul_local3_10
+
+  ; result = 0
+  lda #0
+
+  ; n = 10
+  ldx #10
+
+loop:
+  ; while (n != 0) {
+  beq end
+
+  ; result += local3
+  clc
+  adc local3
+
+  ; n -= 1
+  dex
+
+  ; }
+  bne loop
+end:
+
+  sta local3
+  rts
+.endproc
+
 
 
 DOUBLE:
@@ -583,12 +789,10 @@ docol:
   jmp next
 
 MAIN_words:
-  .word LIT
-  .word $0001
-  .word KEY
-  .word ADD
-  .word EMIT
-  .word CR
+  .word WORD
+  .word NUMBER
+  .word DOT
+  .word DOT
   .word RETURN
 
 RETURN:
