@@ -6,9 +6,9 @@
 .segment "CODE"
 
 .import read_byte
-.import put_byte
-.import put_str
-.import setup_io
+.import io__write_byte
+.import io__write_string
+.import io__setup
 .import format_byte
 .import string__compare
 
@@ -21,7 +21,7 @@ start:
   cli
 
   ;; Then, we setup the ACIA
-  jsr setup_io
+  jsr io__setup
 
   ;; END SETUP
 
@@ -36,7 +36,7 @@ start:
   lda #6
   sta local2
 
-  jsr put_str
+  jsr io__write_string
   
 loop:
   jmp loop

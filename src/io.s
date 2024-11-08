@@ -23,14 +23,14 @@ ioctrl   = $8803
 
 .include "locals.h.s"
 
-.export setup_io
-.export put_byte
-.export put_str
-.export read_byte
-.export format_byte
+.export io__setup
+.export io__write_byte
+.export io__write_string
+.export io__read_byte
+.export io__format_byte
 .export string__compare
 
-.proc setup_io
+.proc io__setup
   ;; We make a few settings to the ACIA by writing
   ;; to the command and control registers.
 
@@ -76,7 +76,7 @@ ioctrl   = $8803
 
   ;; Writes the byte in the accumulator to the ACIA.
   ;; Clobbers: A
-.proc put_byte
+.proc io__write_byte
   pha
 again:
 
@@ -98,7 +98,7 @@ again:
 
   ;; Reads a byte from the ACIA into the accumulator.
   ;; Clobbers: A
-.proc read_byte
+.proc io__read_byte
 
 
   ;; Status Register read:
@@ -151,7 +151,7 @@ loop_end:
   ;; local0, local1: address
   ;; local2: size
   ;; works with at most 255-sized strings
-.proc put_str
+.proc io__write_string
 
   ; i = 0
   ldy #0
@@ -166,9 +166,9 @@ loop:
   txa
   beq end_loop
 
-  ; put_byte(ptr[i])
+  ; io__write_byte(ptr[i])
   lda (local0), y
-  jsr put_byte
+  jsr io__write_byte
 
   ; i++
   iny
@@ -185,7 +185,7 @@ end_loop:
   ;; Standard API;
   ;; Prints the unsigned 8 bit value in A and writes it to standard output
   ;; in base 10
-.proc format_byte
+.proc io__format_byte
 
   jsr div10
   clc
@@ -212,7 +212,7 @@ end_loop:
   lda #3
   sta local2
 
-  jmp put_str
+  jmp io__write_string
 
 .endproc
 

@@ -2,9 +2,9 @@
 .include "locals.h.s"
 
 
-  .import put_byte
-  .import read_byte
-  .import format_byte
+  .import io__write_byte
+  .import io__read_byte
+  .import io__format_byte
   .import string__compare
 
   .export forth_main
@@ -495,10 +495,10 @@ DOT_code:
   lda DATA_STACK, x
   inx
   stx stack_offset
-  jsr format_byte
+  jsr io__format_byte
 
   lda #$20
-  jsr put_byte
+  jsr io__write_byte
 
   jmp next
 
@@ -511,10 +511,10 @@ CR:
   .word CR_code
 CR_code:
   lda #$0A
-  jsr put_byte
+  jsr io__write_byte
 
   lda #$0D
-  jsr put_byte
+  jsr io__write_byte
   jmp next
 
 KEY_header:
@@ -524,7 +524,7 @@ KEY_header:
 KEY:
   .word KEY_code
 KEY_code:
-  jsr read_byte
+  jsr io__read_byte
 
   ldx stack_offset
   dex
@@ -547,7 +547,7 @@ EMIT_code:
   inx
   stx stack_offset
 
-  jsr put_byte
+  jsr io__write_byte
   jmp next
 
 WORD_header:
@@ -586,7 +586,7 @@ WORD_code:
 .proc read_word
   ;; 1. read stuff until not whitespace
 ws_loop:
-  jsr read_byte
+  jsr io__read_byte
 
   cmp #$0A ; '\n'
   beq ws_loop
@@ -601,7 +601,7 @@ ws_loop:
   ldx #$00
 char_loop:
   sta word_buffer, x
-  jsr read_byte
+  jsr io__read_byte
 
   cmp #$0A ; '\n'
   beq end_char_loop
