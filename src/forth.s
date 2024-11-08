@@ -872,14 +872,55 @@ loop: ; while (true) {
 .endproc
 
 
+CFA_header:
+  .word FIND_header
+  .byte $03
+  .byte "CFA"
+CFA:
+  .word CFA_code
+CFA_code:
 
-  ;; end of core forth words
+  ldx stack_offset
 
-DOUBLE:
-  .word docol
-  .word DUP
-  .word ADD
-  .word EXIT
+  lda DATA_STACK, x
+  sta local0
+
+  inx 
+  lda DATA_STACK, x
+  sta local1
+
+  ; size = ptr[2]
+  ldy #2
+  lda (local0), y
+
+  ; size = size | 1
+  ; // if size is even then we want to add one to it
+  ; // (padding byte)
+  ora #1
+
+  ; size = size + 3
+  clc 
+  adc #3
+
+  ; ptr += size
+  clc
+  adc local0
+  sta local0
+  lda local1
+  adc #0 
+  sta local1
+
+  ldx stack_offset
+  lda local0
+  sta DATA_STACK, x
+
+  inx
+  lda  local1
+  sta DATA_STACK, x
+
+  jmp next
+
+  ;; end of core assembly forth words
 
 EXIT:
   .word EXIT_code
@@ -917,6 +958,7 @@ docol:
 MAIN_words:
   .word WORD
   .word FIND
+  .word CFA
   .word DOT
   .word DOT
   .word RETURN
