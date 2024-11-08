@@ -6,6 +6,7 @@
   .import io__read_byte
   .import io__format_byte
   .import string__compare
+  .import string__parse_number
 
   .export forth_main
 
@@ -643,7 +644,7 @@ NUMBER_code:
   lda DATA_STACK, x
   sta local1
 
-  jsr parse_number
+  jsr string__parse_number
 
   ldx stack_offset
   inx
@@ -659,97 +660,7 @@ NUMBER_code:
 
   jmp next
 
-  ;; local0, local1: pointer to a string
-  ;; local2: size of such string
-  ;; saves the result number in A
-  ;; saves the number of unprocessed characters in local0
-  ;; todo: document this and WORD and stuff
-.proc parse_number
 
-  ;; if the string is empty then succeed with zero
-  lda local2
-  beq empty
-
-  ; answer = 0
-  lda #0
-  sta local3
-
-  ldy #00
-
-loop:
-  ; digit = str[i]
-  lda (local0), y
-
-  ; while (digit >= '0' && digit <= '9') {
-  cmp #'0'
-  bcc the_end
-
-  cmp #'9' + 1
-  bcs the_end
-
-  ; digit_value = digit - '0'
-  sec
-  sbc #'0'
-  pha
-
-  ; answer = answer * 10
-  jsr mul_local3_10
-
-  ; answer += diigit_value
-  pla
-  clc
-  adc local3
-  sta local3
-
-  ; i++
-  iny
-  jmp loop
-the_end:
-
-  ; not_handled = str.size - i
-  tya
-  sta local4
-  lda local2
-  sec
-  sbc local4
-
-  sta local0
-  lda local3
-  rts
-
-empty:
-  lda #00
-  sta local0
-  rts
-
-.endproc
-
-.proc mul_local3_10
-
-  ; result = 0
-  lda #0
-
-  ; n = 10
-  ldx #10
-
-loop:
-  ; while (n != 0) {
-  beq end
-
-  ; result += local3
-  clc
-  adc local3
-
-  ; n -= 1
-  dex
-
-  ; }
-  bne loop
-end:
-
-  sta local3
-  rts
-.endproc
 
 
 FIND_header:
@@ -972,9 +883,11 @@ docol:
 
 MAIN_words:
   .word WORD
-  .word FIND
-  .word DFA
-  .word DOT
+  .word NUMBER
+  .word DROP
+  .word LIT 
+  .word $0002
+  .word ADD
   .word DOT
   .word RETURN
 

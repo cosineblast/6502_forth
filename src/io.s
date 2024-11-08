@@ -28,7 +28,9 @@ ioctrl   = $8803
 .export io__write_string
 .export io__read_byte
 .export io__format_byte
+
 .export string__compare
+.export string__parse_number
 
 .proc io__setup
   ;; We make a few settings to the ACIA by writing
@@ -267,3 +269,94 @@ end_loop:
   rts
 .endproc
 
+  ;; local0, local1: pointer to a string
+  ;; local2: size of such string
+  ;; saves the result number in A
+  ;; saves the number of unprocessed characters in local0
+  ;; SmallABI.
+.proc string__parse_number
+
+  ;; if the string is empty then succeed with zero
+  lda local2
+  beq empty
+
+  ; answer = 0
+  lda #0
+  sta local3
+
+  ldy #00
+
+loop:
+  ; digit = str[i]
+  lda (local0), y
+
+  ; while (digit >= '0' && digit <= '9') {
+  cmp #'0'
+  bcc the_end
+
+  cmp #'9' + 1
+  bcs the_end
+
+  ; digit_value = digit - '0'
+  sec
+  sbc #'0'
+  pha
+
+  ; answer = answer * 10
+  jsr mul_local3_10
+
+  ; answer += diigit_value
+  pla
+  clc
+  adc local3
+  sta local3
+
+  ; i++
+  iny
+  jmp loop
+the_end:
+
+  ; not_handled = str.size - i
+  tya
+  sta local4
+  lda local2
+  sec
+  sbc local4
+
+  sta local0
+  lda local3
+  rts
+
+empty:
+  lda #00
+  sta local0
+  rts
+
+.endproc
+
+.proc mul_local3_10
+
+  ; result = 0
+  lda #0
+
+  ; n = 10
+  ldx #10
+
+loop:
+  ; while (n != 0) {
+  beq end
+
+  ; result += local3
+  clc
+  adc local3
+
+  ; n -= 1
+  dex
+
+  ; }
+  bne loop
+end:
+
+  sta local3
+  rts
+.endproc
