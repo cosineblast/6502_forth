@@ -874,8 +874,9 @@ loop: ; while (true) {
 
 CFA_header:
   .word FIND_header
-  .byte $03
-  .byte "CFA"
+  .byte $04
+  .byte ">CFA"
+  .byte $00
 CFA:
   .word CFA_code
 CFA_code:
@@ -920,6 +921,20 @@ CFA_code:
 
   jmp next
 
+
+DFA_header:
+  .word CFA_header
+  .byte $04
+  .byte ">DFA"
+  .byte $00
+DFA:
+  .word docol
+  .word CFA 
+  .word LIT 
+  .word $0002
+  .word ADD
+  .word EXIT
+
   ;; end of core assembly forth words
 
 EXIT:
@@ -958,7 +973,7 @@ docol:
 MAIN_words:
   .word WORD
   .word FIND
-  .word CFA
+  .word DFA
   .word DOT
   .word DOT
   .word RETURN
