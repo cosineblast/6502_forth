@@ -10,6 +10,7 @@
 .import put_str
 .import setup_io
 .import format_byte
+.import string__compare
 
 .import forth_main
 
@@ -26,11 +27,18 @@ start:
 
   jsr forth_main
 
+  lda #<done_string
+  sta local0
+
+  lda #>done_string
+  sta local1
+
+  lda #6
+  sta local2
+
+  jsr put_str
+  
 loop:
-  jsr read_byte
-  jsr put_byte
   jmp loop
 
-
-
-string: .byte "hi there", $0D, $0A, 0
+done_string: .byte $0D, $0A, "done"
