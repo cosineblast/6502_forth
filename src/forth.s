@@ -5,6 +5,7 @@
   .import put_byte
   .import read_byte
   .import format_byte
+  .import string__compare
 
   .export forth_main
 
@@ -21,6 +22,9 @@
   word_buffer = $24
   ;; 32-byte value
   ;; the buffer where we store words and stuff
+
+  ;; two byte value
+  latest = $44
 
 
 
@@ -324,8 +328,8 @@ TWOMINUS_code:
 
 ADD_header:
   .word TWOMINUS_header
-  .byte $03
-  .byte "ADD"
+  .byte $01
+  .byte "+"
 ADD:
   .word ADD_code
 ADD_code:
@@ -343,8 +347,8 @@ ADD_code:
 
 SUB_header:
   .word ADD_header
-  .byte $03
-  .byte "SUB"
+  .byte $01
+  .byte "-"
 SUB:
   .word SUB_code
 SUB_code:
@@ -748,6 +752,128 @@ end:
 .endproc
 
 
+FIND_header:
+  .word NUMBER_header
+  .byte $04
+  .byte "FIND"
+  .byte $00
+FIND:
+  .word FIND_code
+FIND_code:
+
+  ldx stack_offset
+  lda DATA_STACK, x
+
+  sta local2 
+
+  inx 
+  lda DATA_STACK, x
+  sta local0
+
+  inx
+
+  lda DATA_STACK, x
+  sta local1 
+
+  ; result = find_header_entry(str)
+  jsr find_header_entry
+
+
+  ldx stack_offset
+  inx 
+
+  lda local0
+  sta DATA_STACK, x
+
+  inx
+  lda local1
+  sta DATA_STACK, x
+
+  dex
+  stx stack_offset
+
+  jmp next
+
+  ;; Looks up a string in the dictionary
+  ;; local0, local1: pointer to str 
+  ;; local2: size of str
+  ;; returns a nullable pointer to the entry in local0,local1
+  ;; SmallABI
+.proc find_header_entry
+
+
+  ; ptr = latest
+  lda latest
+  sta local3 
+  lda latest+1
+  sta local4
+
+loop: ; while (true) {
+
+  lda local3  ; if (ptr == 0) {
+  bne :+
+  lda local4 
+  bne :+
+
+  lda #0 
+  sta local0
+  sta local1
+  rts ; return NULL
+
+  : ; }
+
+  ; size = ptr[2]
+  ldy #2
+  lda (local3), y
+  sta local5
+
+  ; ptr += 3
+  inc local3
+  inc local3
+  inc local3
+
+  ; same = string__compare(str, ptr)
+  jsr string__compare
+
+  pha 
+
+  ; ptr -= 3
+  dec local3
+  dec local3
+  dec local3
+
+  pla
+  ; if (same) {
+  bne :+
+
+  lda local3 ; *result = ptr
+  sta local0
+  lda local4
+  sta local1
+
+  lda #1 
+  rts
+  : ; }
+
+  ; ptr = * (u8*) ptr
+  ldy #0
+  lda (local3), y
+  pha 
+  iny
+  lda (local3), y
+  sta local4
+  pla 
+  sta local3
+
+
+  jmp loop ; }
+
+  brk
+.endproc
+
+
+
+  ;; end of core forth words
 
 DOUBLE:
   .word docol
@@ -790,7 +916,7 @@ docol:
 
 MAIN_words:
   .word WORD
-  .word NUMBER
+  .word FIND
   .word DOT
   .word DOT
   .word RETURN
@@ -799,6 +925,8 @@ RETURN:
   .word RETURN_code
 RETURN_code:
   rts
+
+  LAST_BUILTIN = FIND_header
 
 forth_main:
 
@@ -813,6 +941,12 @@ forth_main:
 
   lda #>MAIN_words
   sta esi+1
+
+  lda #<LAST_BUILTIN
+  sta latest
+
+  lda #>LAST_BUILTIN
+  sta latest+1
 
   jmp next
 

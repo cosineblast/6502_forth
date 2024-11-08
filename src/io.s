@@ -28,6 +28,7 @@ ioctrl   = $8803
 .export put_str
 .export read_byte
 .export format_byte
+.export string__compare
 
 .proc setup_io
   ;; We make a few settings to the ACIA by writing
@@ -118,14 +119,7 @@ again:
 
 .endproc
 
-  ;; Saves the byte value in the accumlator as a base 10 string 
-  ;; in local7, local8, local9, local10
-  ;; Tiny ABI.
-.proc byte_to_str
-
-.endproc
-
-  ;; Computes A/10 and A%10, saves the remainder in A and the 
+  ;; Computes A/10 and A%10, saves the remainder in A and the
   ;; quotient in local1.
   ;; Tiny ABI.
 .proc div10
@@ -169,7 +163,7 @@ loop_end:
 loop:
 
   ; while (j != 0) {
-  txa 
+  txa
   beq end_loop
 
   ; put_byte(ptr[i])
@@ -177,7 +171,7 @@ loop:
   jsr put_byte
 
   ; i++
-  iny 
+  iny
   ; j--
   dex
   jmp loop
@@ -187,16 +181,20 @@ end_loop:
 
 .endproc
 
+
+  ;; Standard API;
+  ;; Prints the unsigned 8 bit value in A and writes it to standard output
+  ;; in base 10
 .proc format_byte
-    
+
   jsr div10
-  clc 
+  clc
   adc #$30
   sta local7
 
   lda local0
   jsr div10
-  clc 
+  clc
   adc #$30
   sta local6
 
@@ -205,18 +203,67 @@ end_loop:
   adc #$30
   sta local5
 
-  lda #<local5 
-  sta local0 
-  
+  lda #<local5
+  sta local0
+
   lda #>local5
-  sta local1 
+  sta local1
 
   lda #3
-  sta local2 
+  sta local2
 
   jmp put_str
 
 .endproc
 
 
+
+  ;; Determines whether two byte sequences are the same.
+  ;; saves whether they are the same in A, #$00 if same, #$FF if not
+  ;; local0,local1: first string
+  ;; local2: first string size
+  ;; local3,local4: second string
+  ;; local5: second string size
+  ;; cobbles: local6, Y
+.proc string__compare
+
+  ; if (str1.size == 0 || str1.size != str2.size) {
+  lda local2
+  cmp local5 
+  beq :+
+  lda #$ff
+  rts ; return -1
+: ; }
+
+  ; i = 0
+  ldy #0
+
+  ; while (i != str1.size) {
+loop:
+  tya
+  cmp local2
+  beq end_loop
+
+  ; x = str1[i]
+  lda (local0), y
+  sta local6
+
+  ; y = str2[i]
+  lda (local3), y
+
+  ; if (y != x) {
+  cmp local6
+  beq :+
+  lda #$ff
+  rts ; return 0
+  : ; }
+
+  ; i++
+  iny
+  jmp loop
+
+end_loop:
+  lda #00
+  rts
+.endproc
 
